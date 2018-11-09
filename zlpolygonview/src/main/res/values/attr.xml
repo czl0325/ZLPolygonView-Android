@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ZLPolygonView">
+        <attr name="InnerColor" format="color|reference"/>
+        <attr name="LineColor" format="color|reference"/>
+        <attr name="LineWidth" format="dimension"/>
+        <attr name="DotNumber" format="integer"/>
+        <attr name="EdgeNumber" format="integer"/>
+    </declare-styleable>
+</resources>
