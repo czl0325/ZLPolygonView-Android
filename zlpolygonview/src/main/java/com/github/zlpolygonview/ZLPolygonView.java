@@ -11,6 +11,7 @@ import android.graphics.Rect;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 
 import java.util.ArrayList;
@@ -33,6 +34,8 @@ public class ZLPolygonView extends View {
     private List<Point> mOuterPoints;
     private List<Point> mInnerPoints;
     private List<Point> mTextPoints;
+
+    private onClickPolygonListeren onClickPolygonListeren;
 
     public ZLPolygonView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
@@ -119,6 +122,7 @@ public class ZLPolygonView extends View {
                 } else {
                     mPath.lineTo(x,y);
                 }
+                mInnerPoints.add(new Point((int)x,(int)y));
             }
             mPath.close();
             mPaint.setStyle(Paint.Style.FILL);
@@ -187,6 +191,31 @@ public class ZLPolygonView extends View {
         }
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_UP:
+                for (int i=0; i<mInnerPoints.size(); i++) {
+                    Point pt = mInnerPoints.get(i);
+                    if (Math.abs(event.getX()-pt.x)<10
+                            &&Math.abs(event.getY()-pt.y)<10) {
+                        if (onClickPolygonListeren != null) {
+                            onClickPolygonListeren.onClickPolygon(event,i);
+                            Log.e("czl","---"+event.getX()+"----"+event.getY()
+                            + "第" +i + "个点");
+                            break;
+                        }
+                    }
+                }
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    public void setOnClickPolygonListeren(onClickPolygonListeren onClickPolygonListeren) {
+        this.onClickPolygonListeren = onClickPolygonListeren;
+    }
+
     private double angleToRadian(double angle) {
         return angle * Math.PI / 180.0;
     }
@@ -199,5 +228,9 @@ public class ZLPolygonView extends View {
     public int px2dp(Context context, float pxValue) {
         final float scale =  context.getResources().getDisplayMetrics().density;
         return (int) (pxValue / scale + 0.5f);
+    }
+
+    private interface onClickPolygonListeren {
+        void onClickPolygon(MotionEvent event, int index);
     }
 }
