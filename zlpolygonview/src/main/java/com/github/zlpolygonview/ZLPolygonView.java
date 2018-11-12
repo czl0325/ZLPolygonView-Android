@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -20,6 +21,7 @@ import java.util.List;
 public class ZLPolygonView extends View {
     private Paint mPaint;
     private Path mPath;
+    private Context context;
 
     private int mInnerColor;
     private int mLineColor;
@@ -37,8 +39,16 @@ public class ZLPolygonView extends View {
 
     private onClickPolygonListeren onClickPolygonListeren;
 
+    public ZLPolygonView(Context context) {
+        super(context);
+        this.context = context;
+
+        init();
+    }
+
     public ZLPolygonView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
+        this.context = context;
 
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ZLPolygonView);
         mInnerColor = a.getColor(R.styleable.ZLPolygonView_InnerColor, Color.CYAN);
@@ -48,10 +58,14 @@ public class ZLPolygonView extends View {
         mEdgeNumber = a.getInt(R.styleable.ZLPolygonView_EdgeNumber, 4);
         a.recycle();
 
+        init();
+    }
+
+    private void init() {
         mOuterPoints = new ArrayList<>();
         mInnerPoints = new ArrayList<>();
         mTextPoints = new ArrayList<>();
-        mTextSize = 50;//px2dp(context,25);
+        mTextSize = dp2px(context,20);
 
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
@@ -59,8 +73,10 @@ public class ZLPolygonView extends View {
     }
 
 
-
     public void setPolygonValues(List<Float> polygonValues) {
+        if (polygonValues.size() < 3) {
+            return;
+        }
         mPolygonValues = polygonValues;
         mDotNumber = mPolygonValues.size();
         postInvalidate();
@@ -89,6 +105,7 @@ public class ZLPolygonView extends View {
 
         mOuterPoints.clear();
         mInnerPoints.clear();
+        mTextPoints.clear();
 
         mPaint.setColor(mLineColor);
         mPaint.setStrokeWidth(mLineWidth);
@@ -100,6 +117,7 @@ public class ZLPolygonView extends View {
         int textRadius = radius-mTextSize/2;
         int outerRadius = radius-mTextSize;
         float innerAngle = (float) (360.f/mDotNumber);
+        Log.e("czl","size大小="+width+","+height);
 
         mPath.rewind();
         canvas.save();
@@ -123,6 +141,7 @@ public class ZLPolygonView extends View {
                     mPath.lineTo(x,y);
                 }
                 mInnerPoints.add(new Point((int)x,(int)y));
+                //Log.e("czl","第"+i+"个点:"+new Point((int)x,(int)y).toString());
             }
             mPath.close();
             mPaint.setStyle(Paint.Style.FILL);
@@ -146,9 +165,11 @@ public class ZLPolygonView extends View {
                 }
                 if ((j+1)*(1.0/mEdgeNumber)==1) {
                     mOuterPoints.add(new Point((int)x, (int)y));
+                    Log.e("czl","边缘第"+i+"个点:"+new Point((int)x,(int)y).toString());
                     float textX = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*textRadius);
                     float textY = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*textRadius);
                     mTextPoints.add(new Point((int)textX, (int)textY));
+                    Log.e("czl","文字第"+i+"个点:"+new Point((int)textX, (int)textY).toString());
                 }
             }
             mPath.close();
@@ -174,35 +195,33 @@ public class ZLPolygonView extends View {
             }
             Point point = mTextPoints.get(i);
             Paint.FontMetricsInt fontMetrics = mPaint.getFontMetricsInt();
-            Rect textRect = new Rect(
+            RectF textRect = new RectF(
                     point.x-mTextSize/2,
                     point.y-mTextSize/2,
-                    point.x+mTextSize,
-                    point.y+mTextSize);
-            int baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setColor(Color.YELLOW);
-//            canvas.drawRect(textRect, mPaint);
-//            mPaint.setTextSize(30f);
-//            mPaint.setTextAlign(Paint.Align.CENTER);
-//            mPaint.setStyle(Paint.Style.STROKE);
-//            mPaint.setColor(Color.BLACK);
-//            canvas.drawText(str, textRect.centerX(), baseline, mPaint);
+                    point.x+mTextSize/2,
+                    point.y+mTextSize/2);
+            Log.e("czl","第"+i+"个矩形:"+textRect.toString());
+            float baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
+            mPaint.setTextSize(sp2px(10));
+            mPaint.setTextAlign(Paint.Align.CENTER);
+            mPaint.setStyle(Paint.Style.STROKE);
+            mPaint.setColor(Color.BLACK);
+            canvas.drawText(str, textRect.centerX(), baseline, mPaint);
         }
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         switch (event.getAction()) {
-            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_DOWN:
+                //Log.e("czl","触摸的点:"+new Point((int)event.getX(), (int)event.getY()).toString());
                 for (int i=0; i<mInnerPoints.size(); i++) {
                     Point pt = mInnerPoints.get(i);
-                    if (Math.abs(event.getX()-pt.x)<10
-                            &&Math.abs(event.getY()-pt.y)<10) {
+                    if (Math.abs(event.getX()-pt.x)<dp2px(context, 15)
+                            &&Math.abs(event.getY()-pt.y)<dp2px(context, 15)) {
                         if (onClickPolygonListeren != null) {
                             onClickPolygonListeren.onClickPolygon(event,i);
-                            Log.e("czl","---"+event.getX()+"----"+event.getY()
-                            + "第" +i + "个点");
+                            //Log.e("czl","---"+event.getX()+"----"+event.getY() + "第" +i + "个点");
                             break;
                         }
                     }
@@ -230,7 +249,17 @@ public class ZLPolygonView extends View {
         return (int) (pxValue / scale + 0.5f);
     }
 
-    private interface onClickPolygonListeren {
+    public int dp2px(Context context, float dipValue) {
+        final float scale = context.getResources().getDisplayMetrics().density;
+        return (int) (dipValue * scale + 0.5f);
+    }
+
+    public int sp2px(int spValue) {
+        final float fontScale = context.getResources().getDisplayMetrics().scaledDensity;
+        return (int) (spValue * fontScale + 0.5f);
+    }
+
+    public interface onClickPolygonListeren {
         void onClickPolygon(MotionEvent event, int index);
     }
 }
