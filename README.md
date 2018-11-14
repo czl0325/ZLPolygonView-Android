@@ -16,8 +16,8 @@ implementation 'com.github.czl0325:zlpolygonview:1.0.0'
 |------------------------|-----------|--------------------------------------------------------|
 | mPolygonValues          |  List<Float>     | 每个能力值的数值数组，介于0~1之间      |
 | mTextLabels            | List<String>      | 标签数组，没有默认显示“空”           |
-| InnerColor      | color|reference      | 内部填充颜色的色值，默认为Color.CYAN   |
-| LineColor            | color|reference      | 线条的颜色，默认为Color.GRAY     |
+| InnerColor      | color\|reference      | 内部填充颜色的色值，默认为Color.CYAN   |
+| LineColor            | color\|reference      | 线条的颜色，默认为Color.GRAY     |
 | LineWidth            | dimension      | 线条宽度，默认为1 |
 | EdgeNumber			| integer	 |	分割线的数量，默认为4 |
 | DotNumber			| integer	 |	点数，默认为4 |
