@@ -24,11 +24,14 @@ public class MainActivity extends AppCompatActivity {
 
         editText = findViewById(R.id.edit);
         polygonView = findViewById(R.id.polygonview);
-        List<Float> values = new ArrayList<>();
-        for (int i=0; i<4; i++) {
-            values.add((float) (Math.random()*50/100+0.5));
-        }
-        polygonView.setPolygonValues(values);
+//        List<Float> values = new ArrayList<>();
+//        for (int i=0; i<4; i++) {
+//            values.add((float) (Math.random()*50/100+0.5));
+//        }
+//        polygonView.setPolygonValues(values);
+        String json = "[{\"text\":\"1\",\"value\":\"0.4\"},{\"text\":\"2\",\"value\":\"0.6\"}," +
+                "{\"text\":\"3\",\"value\":\"0.2\"},{\"text\":\"4\",\"value\":\"0.8\"}]";
+        polygonView.setJsonString(json);
         polygonView.setOnClickPolygonListeren(new ZLPolygonView.onClickPolygonListeren() {
             @Override
             public void onClickPolygon(MotionEvent event, int index) {

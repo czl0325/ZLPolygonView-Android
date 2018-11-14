@@ -15,8 +15,17 @@ import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ZLPolygonView extends View {
     private Paint mPaint;
@@ -29,8 +38,8 @@ public class ZLPolygonView extends View {
     private int mDotNumber;
     private int mEdgeNumber;
 
-    private List<Float> mPolygonValues;
-    private List<String> mTextLabels;
+    private List<Float> mPolygonValues = new ArrayList<>();
+    private List<String> mTextLabels = new ArrayList<>();
     private int mTextSize;
 
     private List<Point> mOuterPoints;
@@ -72,19 +81,61 @@ public class ZLPolygonView extends View {
         mPath = new Path();
     }
 
-
     public void setPolygonValues(List<Float> polygonValues) {
         if (polygonValues.size() < 3) {
             return;
         }
-        mPolygonValues = polygonValues;
+        mPolygonValues.clear();
+        mPolygonValues.addAll(polygonValues);
         mDotNumber = mPolygonValues.size();
         postInvalidate();
     }
 
     public void setTextLabels(List<String> textLabels) {
-        mTextLabels = textLabels;
+        mTextLabels.clear();
+        mTextLabels.addAll(textLabels);
         postInvalidate();
+    }
+
+    public void setInnerColor(int innerColor) {
+        this.mInnerColor = innerColor;
+        postInvalidate();
+    }
+
+    public void setLineColor(int lineColor) {
+        this.mLineColor = lineColor;
+        postInvalidate();
+    }
+
+    public void setLineWidth(int lineWidth) {
+        this.mLineWidth = lineWidth;
+        postInvalidate();
+    }
+
+    public void setDotNumber(int dotNumber) {
+        this.mDotNumber = dotNumber;
+        postInvalidate();
+    }
+
+    public void setEdgeNumber(int edgeNumber) {
+        this.mEdgeNumber = edgeNumber;
+        postInvalidate();
+    }
+
+    public void setJsonString(String jsonString) {
+        mPolygonValues.clear();
+        mTextLabels.clear();
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<ZLPolygonObject>>() {}.getType();
+        List<ZLPolygonObject> array = gson.fromJson(jsonString, listType);
+        for (int i=0; i<array.size(); i++) {
+            ZLPolygonObject object = array.get(i);
+            mTextLabels.add(object.getText());
+            mPolygonValues.add(object.getValue());
+        }
+        postInvalidate();
+        //List array2 =(ArrayList)JSONArray.toCollection(array, HashMap.class);
+        //System.out.println(array2);
     }
 
     @Override
@@ -96,7 +147,9 @@ public class ZLPolygonView extends View {
         int height = MeasureSpec.getSize(heightMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
 
-        setMeasuredDimension(width, height);
+        int minSize = Math.min(width, height);
+
+        setMeasuredDimension(minSize, minSize);
     }
 
     @Override
@@ -202,7 +255,7 @@ public class ZLPolygonView extends View {
                     point.y+mTextSize/2);
             Log.e("czl","第"+i+"个矩形:"+textRect.toString());
             float baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
-            mPaint.setTextSize(sp2px(10));
+            mPaint.setTextSize(sp2px(12));
             mPaint.setTextAlign(Paint.Align.CENTER);
             mPaint.setStyle(Paint.Style.STROKE);
             mPaint.setColor(Color.BLACK);
@@ -221,7 +274,7 @@ public class ZLPolygonView extends View {
                             &&Math.abs(event.getY()-pt.y)<dp2px(context, 15)) {
                         if (onClickPolygonListeren != null) {
                             onClickPolygonListeren.onClickPolygon(event,i);
-                            //Log.e("czl","---"+event.getX()+"----"+event.getY() + "第" +i + "个点");
+                            Log.e("czl","---"+event.getX()+"----"+event.getY() + "第" +i + "个点");
                             break;
                         }
                     }
@@ -261,5 +314,26 @@ public class ZLPolygonView extends View {
 
     public interface onClickPolygonListeren {
         void onClickPolygon(MotionEvent event, int index);
+    }
+
+    public static class ZLPolygonObject {
+        private String text;
+        private float value;
+
+        public String getText() {
+            return text;
+        }
+
+        public void setText(String text) {
+            this.text = text;
+        }
+
+        public float getValue() {
+            return value;
+        }
+
+        public void setValue(float value) {
+            this.value = value;
+        }
     }
 }
