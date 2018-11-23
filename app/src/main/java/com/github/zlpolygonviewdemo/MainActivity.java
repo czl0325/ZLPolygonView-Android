@@ -9,12 +9,13 @@ import android.view.View;
 import android.widget.EditText;
 
 import com.github.zlpolygonview.ZLPolygonView;
+import com.github.zlpolygonview.ZLPolygonViewH;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
-    private ZLPolygonView polygonView;
+    private ZLPolygonViewH polygonView;
     private EditText editText;
 
     @Override
