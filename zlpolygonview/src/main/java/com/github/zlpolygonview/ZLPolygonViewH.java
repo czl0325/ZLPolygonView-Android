@@ -8,6 +8,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
@@ -74,11 +75,8 @@ public class ZLPolygonViewH extends SurfaceView implements SurfaceHolder.Callbac
 
         mHolder = getHolder();
         mHolder.addCallback(this);
-        // 设置画布 背景透明
-        mHolder.setFormat(PixelFormat.TRANSLUCENT);
-        // --焦点设置----------------------------
+        setZOrderOnTop(true);
         setFocusable(true);
-        // 设置触屏
         setFocusableInTouchMode(true);
 
         mPaint = new Paint();
@@ -93,38 +91,38 @@ public class ZLPolygonViewH extends SurfaceView implements SurfaceHolder.Callbac
         mPolygonValues.clear();
         mPolygonValues.addAll(polygonValues);
         mDotNumber = mPolygonValues.size();
-        //drawCanvas();
+        drawCanvas(mHolder);
     }
 
     public void setTextLabels(List<String> textLabels) {
         mTextLabels.clear();
         mTextLabels.addAll(textLabels);
-        //drawCanvas();
+        drawCanvas(mHolder);
     }
 
     public void setInnerColor(int innerColor) {
         this.mInnerColor = innerColor;
-        //drawCanvas();
+        drawCanvas(mHolder);
     }
 
     public void setLineColor(int lineColor) {
         this.mLineColor = lineColor;
-        //drawCanvas();
+        drawCanvas(mHolder);
     }
 
     public void setLineWidth(int lineWidth) {
         this.mLineWidth = lineWidth;
-        //drawCanvas(mHolder);
+        drawCanvas(mHolder);
     }
 
     public void setDotNumber(int dotNumber) {
         this.mDotNumber = dotNumber;
-        //drawCanvas(mHolder);
+        drawCanvas(mHolder);
     }
 
     public void setEdgeNumber(int edgeNumber) {
         this.mEdgeNumber = edgeNumber;
-        //drawCanvas(mHolder);
+        drawCanvas(mHolder);
     }
 
     public void setJsonString(String jsonString) {
@@ -148,122 +146,126 @@ public class ZLPolygonViewH extends SurfaceView implements SurfaceHolder.Callbac
     }
 
     private void drawCanvas(SurfaceHolder holder) {
-        mCanvas = holder.lockCanvas();
+        try {
+            mCanvas = holder.lockCanvas();
 
-        if (mCanvas == null)
-            return;
+            //加上这句才能清空画布
+            mCanvas.drawColor(Color.WHITE);
+            mCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.SRC);
 
-        mCanvas.drawColor(Color.TRANSPARENT);
+            mOuterPoints.clear();
+            mInnerPoints.clear();
+            mTextPoints.clear();
 
-        mOuterPoints.clear();
-        mInnerPoints.clear();
-        mTextPoints.clear();
+            mPaint.setColor(mLineColor);
+            mPaint.setStrokeWidth(mLineWidth);
 
-        mPaint.setColor(mLineColor);
-        mPaint.setStrokeWidth(mLineWidth);
+            int width = getMeasuredWidth();
+            int height = getMeasuredHeight();
+            Point centerPoint = new Point(width/2, height/2);
+            int radius = Math.min(width/2, height/2);
+            int textRadius = radius-mTextSize/2;
+            int outerRadius = radius-mTextSize;
+            float innerAngle = (float) (360.f/mDotNumber);
+            Log.e("czl","size大小="+width+","+height);
 
-        int width = getMeasuredWidth();
-        int height = getMeasuredHeight();
-        Point centerPoint = new Point(width/2, height/2);
-        int radius = Math.min(width/2, height/2);
-        int textRadius = radius-mTextSize/2;
-        int outerRadius = radius-mTextSize;
-        float innerAngle = (float) (360.f/mDotNumber);
-        Log.e("czl","size大小="+width+","+height);
-
-        mPath.rewind();
-        mCanvas.save();
-        //绘制能力值
-        if (mPolygonValues != null && mPolygonValues.size() > 0) {
-            for (int i=0; i<mPolygonValues.size(); i++) {
-                Float F = mPolygonValues.get(i);
-                float f = F.floatValue();
-                if (f > 1) {
-                    f = 1;
-                }
-                if (f < 0) {
-                    f = 0;
-                }
-                float currentRadius = (float) (outerRadius*f);
-                float x = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*currentRadius);
-                float y = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*currentRadius);
-                if (i==0) {
-                    mPath.moveTo(x,y);
-                } else {
-                    mPath.lineTo(x,y);
-                }
-                mInnerPoints.add(new Point((int)x,(int)y));
-                //Log.e("czl","第"+i+"个点:"+new Point((int)x,(int)y).toString());
-            }
-            mPath.close();
-            mPaint.setStyle(Paint.Style.FILL);
-            mPaint.setColor(mInnerColor);
-            mCanvas.drawPath(mPath , mPaint);
-            mCanvas.restore();
-        }
-
-        //画边缘线
-        for (int j=0; j<mEdgeNumber; j++) {
             mPath.rewind();
             mCanvas.save();
-            for (int i=0; i<mDotNumber; i++) {
-                float currentRadius = (float) (outerRadius*((j+1)*(1.0/mEdgeNumber)));
-                float x = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*currentRadius);
-                float y = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*currentRadius);
-                if (i==0) {
-                    mPath.moveTo(x,y);
-                } else {
-                    mPath.lineTo(x,y);
+            //绘制能力值
+            if (mPolygonValues != null && mPolygonValues.size() > 0) {
+                for (int i=0; i<mPolygonValues.size(); i++) {
+                    Float F = mPolygonValues.get(i);
+                    float f = F.floatValue();
+                    if (f > 1) {
+                        f = 1;
+                    }
+                    if (f < 0) {
+                        f = 0;
+                    }
+                    float currentRadius = (float) (outerRadius*f);
+                    float x = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*currentRadius);
+                    float y = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*currentRadius);
+                    if (i==0) {
+                        mPath.moveTo(x,y);
+                    } else {
+                        mPath.lineTo(x,y);
+                    }
+                    mInnerPoints.add(new Point((int)x,(int)y));
+                    //Log.e("czl","第"+i+"个点:"+new Point((int)x,(int)y).toString());
                 }
-                if ((j+1)*(1.0/mEdgeNumber)==1) {
-                    mOuterPoints.add(new Point((int)x, (int)y));
-                    Log.e("czl","边缘第"+i+"个点:"+new Point((int)x,(int)y).toString());
-                    float textX = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*textRadius);
-                    float textY = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*textRadius);
-                    mTextPoints.add(new Point((int)textX, (int)textY));
-                    Log.e("czl","文字第"+i+"个点:"+new Point((int)textX, (int)textY).toString());
+                mPath.close();
+                mPaint.setStyle(Paint.Style.FILL);
+                mPaint.setColor(mInnerColor);
+                mCanvas.drawPath(mPath , mPaint);
+                mCanvas.restore();
+            }
+
+            //画边缘线
+            for (int j=0; j<mEdgeNumber; j++) {
+                mPath.rewind();
+                mCanvas.save();
+                for (int i=0; i<mDotNumber; i++) {
+                    float currentRadius = (float) (outerRadius*((j+1)*(1.0/mEdgeNumber)));
+                    float x = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*currentRadius);
+                    float y = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*currentRadius);
+                    if (i==0) {
+                        mPath.moveTo(x,y);
+                    } else {
+                        mPath.lineTo(x,y);
+                    }
+                    if ((j+1)*(1.0/mEdgeNumber)==1) {
+                        mOuterPoints.add(new Point((int)x, (int)y));
+                        Log.e("czl","边缘第"+i+"个点:"+new Point((int)x,(int)y).toString());
+                        float textX = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*textRadius);
+                        float textY = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*textRadius);
+                        mTextPoints.add(new Point((int)textX, (int)textY));
+                        Log.e("czl","文字第"+i+"个点:"+new Point((int)textX, (int)textY).toString());
+                    }
                 }
+                mPath.close();
+                mPaint.setStyle(Paint.Style.STROKE);
+                mPaint.setColor(mLineColor);
+                mCanvas.drawPath(mPath , mPaint);
+                mCanvas.restore();
             }
-            mPath.close();
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setColor(mLineColor);
-            mCanvas.drawPath(mPath , mPaint);
-            mCanvas.restore();
-        }
 
-        //绘制对角线
-        for (int i=0; i<mOuterPoints.size(); i++) {
-            Point point = mOuterPoints.get(i);
-            mPath.moveTo(centerPoint.x, centerPoint.y);
-            mPath.lineTo(point.x, point.y);
-            mCanvas.drawPath(mPath , mPaint);
-        }
-
-        //绘制文字
-        for (int i=0; i<mTextPoints.size(); i++) {
-            String str = "空";
-            if (mTextLabels != null && i < mTextLabels.size()) {
-                str = mTextLabels.get(i);
+            //绘制对角线
+            for (int i=0; i<mOuterPoints.size(); i++) {
+                Point point = mOuterPoints.get(i);
+                mPath.moveTo(centerPoint.x, centerPoint.y);
+                mPath.lineTo(point.x, point.y);
+                mCanvas.drawPath(mPath , mPaint);
             }
-            Point point = mTextPoints.get(i);
-            Paint.FontMetricsInt fontMetrics = mPaint.getFontMetricsInt();
-            RectF textRect = new RectF(
-                    point.x-mTextSize/2,
-                    point.y-mTextSize/2,
-                    point.x+mTextSize/2,
-                    point.y+mTextSize/2);
-            Log.e("czl","第"+i+"个矩形:"+textRect.toString());
-            float baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
-            mPaint.setTextSize(sp2px(12));
-            mPaint.setTextAlign(Paint.Align.CENTER);
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setColor(Color.BLACK);
-            mCanvas.drawText(str, textRect.centerX(), baseline, mPaint);
+
+            //绘制文字
+            for (int i=0; i<mTextPoints.size(); i++) {
+                String str = "空";
+                if (mTextLabels != null && i < mTextLabels.size()) {
+                    str = mTextLabels.get(i);
+                }
+                Point point = mTextPoints.get(i);
+                Paint.FontMetricsInt fontMetrics = mPaint.getFontMetricsInt();
+                RectF textRect = new RectF(
+                        point.x-mTextSize/2,
+                        point.y-mTextSize/2,
+                        point.x+mTextSize/2,
+                        point.y+mTextSize/2);
+                Log.e("czl","第"+i+"个矩形:"+textRect.toString());
+                float baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
+                mPaint.setTextSize(sp2px(12));
+                mPaint.setTextAlign(Paint.Align.CENTER);
+                mPaint.setStyle(Paint.Style.STROKE);
+                mPaint.setColor(Color.BLACK);
+                mCanvas.drawText(str, textRect.centerX(), baseline, mPaint);
+            }
+        } catch (Exception e) {
+
+        } finally {
+            if (mCanvas != null) {
+                mHolder.unlockCanvasAndPost(mCanvas);
+            }
         }
 
-        if (mCanvas != null) {
-            mHolder.unlockCanvasAndPost(mCanvas);
-        }
     }
 
     private double angleToRadian(double angle) {
@@ -307,6 +309,7 @@ public class ZLPolygonViewH extends SurfaceView implements SurfaceHolder.Callbac
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         mHolder = holder;
+        mHolder.setFormat(PixelFormat.TRANSPARENT);
         drawCanvas(holder);
     }
 
