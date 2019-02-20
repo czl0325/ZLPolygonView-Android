@@ -29,6 +29,7 @@ import java.util.Map;
 
 public class ZLPolygonView extends View {
     private Paint mPaint;
+    private TextPaint mTextPaint;
     private Path mPath;
     private Context context;
 
@@ -41,6 +42,7 @@ public class ZLPolygonView extends View {
     private List<Float> mPolygonValues = new ArrayList<>();
     private List<String> mTextLabels = new ArrayList<>();
     private int mTextSize;
+    private int mTextHeight;
 
     private List<Point> mOuterPoints;
     private List<Point> mInnerPoints;
@@ -62,9 +64,10 @@ public class ZLPolygonView extends View {
         TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.ZLPolygonView);
         mInnerColor = a.getColor(R.styleable.ZLPolygonView_InnerColor, Color.CYAN);
         mLineColor = a.getColor(R.styleable.ZLPolygonView_LineColor, Color.GRAY);
-        mLineWidth = a.getColor(R.styleable.ZLPolygonView_LineWidth, 4);
+        mLineWidth = a.getDimensionPixelSize(R.styleable.ZLPolygonView_LineWidth, 1);
         mDotNumber = a.getInt(R.styleable.ZLPolygonView_DotNumber, 4);
         mEdgeNumber = a.getInt(R.styleable.ZLPolygonView_EdgeNumber, 4);
+        mTextSize = a.getDimensionPixelSize(R.styleable.ZLPolygonView_TextSize, 20);
         a.recycle();
 
         init();
@@ -74,11 +77,17 @@ public class ZLPolygonView extends View {
         mOuterPoints = new ArrayList<>();
         mInnerPoints = new ArrayList<>();
         mTextPoints = new ArrayList<>();
-        mTextSize = dp2px(context,20);
+        //mTextSize = dp2px(context,20);
+        mTextHeight = dp2px(context,10);
 
         mPaint = new Paint();
         mPaint.setAntiAlias(true);
         mPath = new Path();
+        mTextPaint = new TextPaint();
+        mTextPaint.setColor(Color.BLACK);
+        mTextPaint.setStyle(Paint.Style.FILL);
+        mTextPaint.setTextSize(50);
+        mTextPaint.setTextSize(sp2px(9));
     }
 
     public void setPolygonValues(List<Float> polygonValues) {
@@ -94,6 +103,7 @@ public class ZLPolygonView extends View {
     public void setTextLabels(List<String> textLabels) {
         mTextLabels.clear();
         mTextLabels.addAll(textLabels);
+        requestLayout();
         postInvalidate();
     }
 
@@ -146,10 +156,29 @@ public class ZLPolygonView extends View {
         int widthMode = MeasureSpec.getMode(widthMeasureSpec);
         int height = MeasureSpec.getSize(heightMeasureSpec);
         int heightMode = MeasureSpec.getMode(heightMeasureSpec);
-
         int minSize = Math.min(width, height);
+        int lastWidth = minSize;
 
-        setMeasuredDimension(minSize, minSize);
+//        int maxwidth = 0;
+//        if (mTextLabels.size() > 0) {
+//            for (String str : mTextLabels) {
+//                Rect rect = new Rect();
+//                //返回包围整个字符串的最小的一个Rect区域
+//                mPaint.getTextBounds(str, 0, str.length(), rect);
+//
+//                Log.e("czl",""+mPaint.measureText(str));
+//                if (rect.width() >= maxwidth) {
+//                    maxwidth = rect.width();
+//                }
+//            }
+//        }
+//        mTextSize = maxwidth;
+//        lastWidth = minSize+mTextSize*2-mTextHeight*2;
+//        if (lastWidth < minSize) {
+//            lastWidth = minSize;
+//        }
+
+        setMeasuredDimension(lastWidth, minSize);
     }
 
     @Override
@@ -170,7 +199,7 @@ public class ZLPolygonView extends View {
         int textRadius = radius-mTextSize/2;
         int outerRadius = radius-mTextSize;
         float innerAngle = (float) (360.f/mDotNumber);
-        Log.e("czl","size大小="+width+","+height);
+        //Log.e("czl","宽度="+width+",高度="+height+",中心点{"+centerPoint.x+","+centerPoint.y+"},半径="+radius);
 
         mPath.rewind();
         canvas.save();
@@ -194,7 +223,6 @@ public class ZLPolygonView extends View {
                     mPath.lineTo(x,y);
                 }
                 mInnerPoints.add(new Point((int)x,(int)y));
-                //Log.e("czl","第"+i+"个点:"+new Point((int)x,(int)y).toString());
             }
             mPath.close();
             mPaint.setStyle(Paint.Style.FILL);
@@ -218,11 +246,11 @@ public class ZLPolygonView extends View {
                 }
                 if ((j+1)*(1.0/mEdgeNumber)==1) {
                     mOuterPoints.add(new Point((int)x, (int)y));
-                    Log.e("czl","边缘第"+i+"个点:"+new Point((int)x,(int)y).toString());
+                    //Log.e("czl","边缘第"+i+"个点:"+new Point((int)x,(int)y).toString());
                     float textX = (float) (centerPoint.x-Math.cos(angleToRadian(90-innerAngle*i))*textRadius);
                     float textY = (float) (centerPoint.y-Math.sin(angleToRadian(90-innerAngle*i))*textRadius);
                     mTextPoints.add(new Point((int)textX, (int)textY));
-                    Log.e("czl","文字第"+i+"个点:"+new Point((int)textX, (int)textY).toString());
+                    //Log.e("czl","文字第"+i+"个点:"+new Point((int)textX, (int)textY).toString());
                 }
             }
             mPath.close();
@@ -242,24 +270,88 @@ public class ZLPolygonView extends View {
 
         //绘制文字
         for (int i=0; i<mTextPoints.size(); i++) {
-            String str = "空";
+            String str = "空空";
             if (mTextLabels != null && i < mTextLabels.size()) {
                 str = mTextLabels.get(i);
             }
-            Point point = mTextPoints.get(i);
+            Point point = mOuterPoints.get(i);
             Paint.FontMetricsInt fontMetrics = mPaint.getFontMetricsInt();
-            RectF textRect = new RectF(
-                    point.x-mTextSize/2,
-                    point.y-mTextSize/2,
-                    point.x+mTextSize/2,
-                    point.y+mTextSize/2);
-            Log.e("czl","第"+i+"个矩形:"+textRect.toString());
+            RectF textRect = null;
+            if (point.x==width/2) {
+                mTextPaint.setTextAlign(Paint.Align.CENTER);
+                if (point.y > height/2) {
+                    textRect = new RectF(
+                            point.x-mTextSize/2,
+                            point.y,
+                            point.x+mTextSize/2,
+                            point.y+mTextHeight);
+                } else {
+                    textRect = new RectF(
+                            point.x-mTextSize/2,
+                            point.y-mTextHeight,
+                            point.x+mTextSize/2,
+                            point.y);
+                }
+            } else if (point.x<width/2) {
+                mTextPaint.setTextAlign(Paint.Align.RIGHT);
+                if (point.y > height/2) {
+                    textRect = new RectF(
+                            point.x,
+                            point.y ,
+                            point.x - mTextSize,
+                            point.y + mTextHeight);
+                } else {
+                    textRect = new RectF(
+                            point.x,
+                            point.y - mTextHeight ,
+                            point.x - mTextSize,
+                            point.y );
+                }
+            } else {
+                mTextPaint.setTextAlign(Paint.Align.LEFT);
+                if (point.y > height/2) {
+                    textRect = new RectF(
+                            point.x,
+                            point.y ,
+                            point.x + mTextSize,
+                            point.y + mTextHeight);
+                } else {
+                    textRect = new RectF(
+                            point.x,
+                            point.y - mTextHeight ,
+                            point.x + mTextSize,
+                            point.y );
+                }
+            }
+//            mPaint.setStyle(Paint.Style.FILL);
+//            mPaint.setColor(Color.RED);
+//            canvas.drawRect(textRect, mPaint);
+            //Log.e("czl","第"+i+"个矩形:"+textRect.toString());
             float baseline = (textRect.bottom + textRect.top - fontMetrics.bottom - fontMetrics.top) / 2;
-            mPaint.setTextSize(sp2px(12));
-            mPaint.setTextAlign(Paint.Align.CENTER);
-            mPaint.setStyle(Paint.Style.STROKE);
-            mPaint.setColor(Color.BLACK);
-            canvas.drawText(str, textRect.centerX(), baseline, mPaint);
+
+            if (point.x == width/2) {
+                canvas.drawText(str, textRect.centerX(), baseline, mTextPaint);
+            } else if (point.y == height-mTextHeight) {
+                canvas.drawText(str, textRect.left, baseline, mTextPaint);
+            } else {
+                StaticLayout myStaticLayout = new StaticLayout(str, mTextPaint, mTextSize,
+                        Layout.Alignment.ALIGN_NORMAL, 1f, 0f, true);
+                //canvas.drawText(str, textRect.left, baseline, mTextPaint);
+                canvas.save();
+                canvas.translate(textRect.left, textRect.top);
+                myStaticLayout.draw(canvas);
+                canvas.restore();
+            }
+        }
+    }
+
+    private void drawText(Canvas canvas ,String text , float x ,float y, Paint paint ,float angle){
+        if(angle != 0){
+            canvas.rotate(angle, x, y);
+        }
+        canvas.drawText(text, x, y, paint);
+        if(angle != 0){
+            canvas.rotate(-angle, x, y);
         }
     }
 
@@ -274,7 +366,7 @@ public class ZLPolygonView extends View {
                             &&Math.abs(event.getY()-pt.y)<dp2px(context, 15)) {
                         if (onClickPolygonListeren != null) {
                             onClickPolygonListeren.onClickPolygon(event,i);
-                            Log.e("czl","---"+event.getX()+"----"+event.getY() + "第" +i + "个点");
+                            //Log.e("czl","---"+event.getX()+"----"+event.getY() + "第" +i + "个点");
                             break;
                         }
                     }
@@ -337,3 +429,4 @@ public class ZLPolygonView extends View {
         }
     }
 }
+
