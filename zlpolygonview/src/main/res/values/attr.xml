@@ -6,5 +6,6 @@
         <attr name="LineWidth" format="dimension"/>
         <attr name="DotNumber" format="integer"/>
         <attr name="EdgeNumber" format="integer"/>
+        <attr name="TextSize" format="dimension"/>
     </declare-styleable>
 </resources>

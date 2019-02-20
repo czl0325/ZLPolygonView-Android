@@ -7,7 +7,7 @@
 
 ### 导入
 ```JAVA
-implementation 'com.github.czl0325:zlpolygonview:1.0.1'
+implementation 'com.github.czl0325:zlpolygonview:1.0.2'
 ```
 
 ### 参数
